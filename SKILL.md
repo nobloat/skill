@@ -119,6 +119,23 @@ Most iterations came from these being unspecified. Decide them in the plan:
 10. Branding: glyph character, logo mark, palette?
 11. Extension points: which things will get more variants later (types, themes, languages)?
 
+## Plan first, then build in one go
+
+Implementation is a single pass, so every decision is settled before code exists:
+
+1. Ask everything at once: a numbered list, each item with a recommended default. The owner replies only with deviations ("all ok except 4, 12: …"). Do not drip questions.
+2. Check the answers against each other and against the stack rules. Name each conflict exactly (e.g. "browser-only PDF vs. PDF mail attachment") and list it as an open question with a default. Never resolve a conflict silently.
+3. Write `PLAN.md` per deployable **as if the software already exists**: the full sample config with defaults, seed files, `compose.yaml` + `Caddyfile`, a roles table, the REST endpoint list, a CLI reference with a worked example, ASCII sketches of every page, the shortcut tables, the data layout with one example JSON, the file list and the tests. Open questions go at the top, Non-features next to the decisions. Integrations between deployables get their own section: who calls whom, the exact requests, failure and retry behavior, and a sequence sketch.
+4. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + the IdP (Authelia) in front, a mail sink (mailpit), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
+5. **Wireframe review before any code.** Build `wireframes.html`: static, self-contained mockups in the real nobloat look (monospace, tokens, light + dark), with realistic example data, every page and dialog, the phone layout, and each important flow shown step by step (e.g. "add hours from track": empty draft → dialog → result). Publish it for the owner and iterate on their feedback until they stop changing it. Check every revision for:
+   - shortcuts: vim `h j k l`, `g` + letter for every navigation item, `/` global search, no key bound twice on one page
+   - density: few columns, generous whitespace, secondary info in muted small text or on the detail page
+   - every amount with its currency, every date/time/number in the configurable local format (default AT: `€ 2.300,47`, `31.10.2026`, `14:30`)
+   - labels that need no helper text; if a field needs an explanation, rename or remove it
+   The plan names `wireframes.html` as the visual reference, which wins over its ASCII sketches.
+6. Add a **manual acceptance checklist** to the plan: numbered items the owner clicks through at the end in the local stack, each naming the user to log in as and the expected result, grouped by area (operations, access, main flows, edge cases, output documents, UI/keyboard/mobile/a11y, CLI parity). Automated tests are listed separately and are still required.
+7. Commit `PROMPT.md`, `PLAN.md` and `wireframes.html` as the first commit of a fresh repo per deployable. Start implementing only on the owner's explicit go, then build everything in one pass without asking back.
+
 ## Definition of done
 
 - `make test` green, `-check` passes on the sample config and README examples.
