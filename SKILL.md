@@ -5,7 +5,7 @@ description: cinemast's nobloat software taste for small, self-hosted Go tools (
 
 # nobloat
 
-Distilled from workq, blog, tinyviper, poll, up (pingpong) and split. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here.
+Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and track. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here. For a system of several cooperating services (or anything with money, documents, a local auth stack, reviews or a demo video) also read the `nobloat-system` skill.
 
 ## Philosophy
 
@@ -40,6 +40,8 @@ Distilled from workq, blog, tinyviper, poll, up (pingpong) and split. Read befor
 - An uncommon default port (poll `8737`, split `8738`, pingpong `7493`), not 8080.
 - JSON APIs are strict and documented in one contract file (split `BACKEND.md`): `Content-Type` required, unknown fields, duplicate keys, trailing data and invalid IDs rejected, body size limited, empty lists are `[]` never `null`, errors as `{"error":"snake_case_code"}` with a fitting status.
 - Concurrent edits: revision numbers + compare-and-swap (409 with the current state), mutation IDs make retries idempotent.
+- `/metrics` in Prometheus text format, written by hand, behind its own `metrics_key` that opens nothing else (empty = off).
+- Wrap the handler in `http.NewCrossOriginProtection()` whenever a cookie authenticates browsers; add `nosniff`, `X-Frame-Options`, `Referrer-Policy` in one middleware.
 
 ## Auth (optional, for multi-user services)
 
@@ -48,7 +50,7 @@ Single-user tools keep one static basic auth credential. Once users matter, no s
 - Fixed header contract: `Remote-User` (stable key), `Remote-Email`, `Remote-Name`, `Remote-Groups` (comma-separated). Other IdPs are mapped in caddy (`copy_headers X-Forwarded-User>Remote-User`), never via configurable header names.
 - Read them only from `trusted_proxies` (CIDRs in config), otherwise 401; a fixed user only with `-dev`. Users are created on first sight as a reference for audit log and permissions, no credentials stored.
 - No login/logout UI, only a `logout_url` link.
-- API keys (CLI, scripts, integrations) are the one thing a service checks itself: `Authorization: Bearer <key>`, stored hashed in the seedable config with a username and a role; caddy skips `forward_auth` when the header is present.
+- API keys (CLI, scripts, integrations) are the one thing a service checks itself: `Authorization: Bearer <key>`, stored hashed in the seedable config with a username and a role; caddy skips `forward_auth` when the header is present. A request with a bearer token therefore never reads `Remote-*` headers (test it through the proxy).
 - Access control in layers:
   1. Who may reach the app at all: IdP rules per domain, no code.
   2. What they may do: a few fixed roles in code (`viewer < editor < admin`, each implying the lower), mapped to IdP groups in config (`role.editor = billing`). One check per handler (`need(r, editor)`), default deny, UI hides what the role cannot do but the server enforces it.
@@ -69,6 +71,9 @@ Single-user tools keep one static basic auth credential. Once users matter, no s
 - Stdlib `testing` only, integration tests that start the real thing in-process (`t.TempDir()` for data), plus small unit tests for parsers.
 - `testing/synctest` for anything time-based; in-memory listeners/dialers instead of real sockets so the fake clock works.
 - `make test` = `go vet` + `go test -race`. Every feature lands with its test; every bug fix gets one.
+- `synctest`: channels and timers the code under test waits on must be created inside the bubble, otherwise `synctest.Wait` hangs.
+- A test that builds the full handler catches `ServeMux` pattern conflicts, which otherwise only panic at startup.
+- Before calling it done: `golangci-lint` with gosec and staticcheck; fix real findings, name the false positives.
 - UI changes are verified visually (`make screenshots`), not only by asserting HTML.
 
 ## UI
@@ -138,6 +143,7 @@ Implementation is a single pass, so every decision is settled before code exists
 
 ## Definition of done
 
-- `make test` green, `-check` passes on the sample config and README examples.
+- `make test` green, `-check` passes on the sample config and README examples, lint findings triaged.
 - Screenshots regenerated and looked at (desktop + phone, light + dark).
-- README and plan updated; CI and release workflows in place.
+- README and plan updated (requests made during the build as dated *Addendum* sections); CI and release workflows in place.
+- Reviews done and written to `reviews/`: ponytail (apply the safe deletions), code, security (see `nobloat-system`).
