@@ -55,7 +55,7 @@ Details in the `nobloat-auth` skill. In short:
 ## Configuration
 
 - Pick the medium for the audience and stick to it: env + `.env.sample` for a simple service (poll), one strict JSON file for infrastructure-as-code (pingpong), Go code for a personal tool (blog).
-- Connection settings as one URL (`SMTP_URL=smtp://user:pass@host:587`, `smtp+insecure://` for local Mailpit).
+- Connection settings as one URL (`SMTP_URL=smtp://user:pass@host:587`, `smtp+insecure://` for local nomail).
 - Strict: unknown fields are errors, everything validated at startup and via a `-check` flag (exit 1), defaults documented next to each option.
 - Secrets live in the config; treat the whole file as secret; never render secrets in any UI (mask them).
 - A public `base_url` whenever anything leaves the system (mails, notifications): links must always point back to the affected item.
@@ -95,7 +95,7 @@ Details in the `nobloat-auth` skill. In short:
 
 Copy from poll or up, adjust names. Layout: Go files at the root, `web/` (templates + `static/`), `i18n/`, `example/` or sample config.
 
-- `Makefile`: `build` (static binary, `-X main.release=$(TAG)`, TAG = exact git tag or `main`), `test`, `run`/`dev` (sample config), `package`, `push` (`ghcr.io/nobloat/<project>:$(TAG)`), `release` (next `vN` tag), `screenshots`, `clean`; local helpers like `mailpit` as needed.
+- `Makefile`: `build` (static binary, `-X main.release=$(TAG)`, TAG = exact git tag or `main`), `test`, `run`/`dev` (sample config), `package`, `push` (`ghcr.io/nobloat/<project>:$(TAG)`), `release` (next `vN` tag), `screenshots`, `clean`; local helpers like `nomail` as needed.
 - Version = release + short commit from `debug.ReadBuildInfo` (`+dirty` if modified), shown in footer and startup log.
 - `Dockerfile`: `golang` builder runs vet + tests + `make build` (keep `.git` in the context), final `scratch` with CA certs, non-root user (`65534`), data as a volume.
 - GitHub Actions: `ci.yml` (push to main + PRs: `make test`, `make build`), `release.yml` (tag push: `make push`, also `:latest`).
@@ -130,7 +130,7 @@ Implementation is a single pass, so every decision is settled before code exists
    Also write every **sample file** for real: the sample config with defaults and comments, one file per seeded entity (users, roles, objects) with realistic data, both Caddyfiles (production with one block per pattern, local stack), the local `compose.yaml` and its init scripts, and the test-suite configs. The owner reads and runs these to judge how the system looks and feels, and to find missing or misread requirements, before any implementation. One config set serves `make run` and the local stack (env overrides in compose), with no second copy.
    For every third-party app the system integrates (OIDC clients, for example), the README gets a setup section with the app's own role model mapped to groups: a table of group → app role and the exact config of both sides. The local stack configures it the same way.
 5. Write `README.md` **as if the software already shipped**, in the final README layout (see Project setup). Use real `make` targets, `docker run`/compose snippets, the config reference copied from the plan, and one worked example per main use case, with screenshot placeholders. Write it for a user who has never seen the plan. Anything that is hard to explain in the README, needs a caveat, or contradicts the plan is a misunderstood or unsettled requirement: add it to the open questions. Keep it in sync with each plan revision. The plan holds the decisions, the README holds the user's view, and neither repeats the other's details beyond the config reference.
-6. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + nobloat/auth in front, a mail sink (mailpit), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
+6. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + nobloat/auth in front, a mail sink (nomail), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
 7. **Wireframe review before any implementation.** Build `wireframes.html`: static, self-contained mockups in the real nobloat look (monospace, tokens, light + dark), with realistic example data, every page and dialog, the phone layout, and each important flow shown step by step (e.g. "add hours from track": empty draft → dialog → result). Publish it for the owner and iterate on their feedback until they stop changing it. Check every revision for:
    - shortcuts: vim `h j k l`, `g` + letter for every navigation item, `/` global search, no key bound twice on one page
    - density: few columns, generous whitespace, secondary info in muted small text or on the detail page
