@@ -30,7 +30,7 @@ Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and trac
 - Defaults through `cmp.Or`, small helpers inline; no interfaces with one implementation, no factories.
 - Inject only what tests need (dialer, listener, `now func() time.Time`, clock via `synctest`), nothing else.
 - IDs: `strings.ToLower(rand.Text()[:16])`, validated by regexp everywhere they enter; names that become filenames are restricted to `[a-z0-9-]+`.
-- Anything that leaves the system and may fail (mail, webhooks) goes through a durable file outbox with retries and backoff, resumed on startup (poll `outbox.go`).
+- Anything that leaves the system and may fail (mail, webhooks) goes through a durable file outbox with retries and backoff, resumed on startup (poll `outbox.go`); details in the `nobloat-outbox` skill.
 - Public create endpoints are protected by a stateless HMAC proof-of-work challenge (poll/split `pow.go`), not captchas or accounts.
 - Comments explain why, not what. Mark deliberate shortcuts with their limit and upgrade path.
 

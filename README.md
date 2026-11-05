@@ -7,6 +7,7 @@ Three skills, one directory each:
 - [nobloat](nobloat/SKILL.md): the taste for a single tool (stack, code, HTTP, auth, config, tests, UI, branding, plan-first workflow).
 - [nobloat-auth](https://github.com/nobloat/auth/blob/main/skill/SKILL.md) (lives in nobloat/auth as `skill/`; `nobloat-auth/` here is a pointer): single-user basic auth or nobloat/auth in front via caddy forward auth, groups as the only source of access, API keys and service users from auth, Caddyfile, tests.
 - [nobloat-storage](nobloat-storage/SKILL.md): config, entity files and hot reload, JSON per type or per object, CSV or JSONL rows, atomic writes, seeding from prepared files, trivial and incremental backup, export, migration, when SQLite is justified.
+- [nobloat-outbox](nobloat-outbox/SKILL.md): the durable file outbox for mail, webhooks and API pushes (record, same-transaction enqueue, worker, stdlib SMTP + MIME, retry classes, rate limits, tests).
 - [nobloat-system](nobloat-system/SKILL.md): building several cooperating services end to end (integrations, money and documents, own renderers, security baseline, metrics, local auth stack, verification, review loop, demo video). Used together with nobloat.
 
 ## Install
