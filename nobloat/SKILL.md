@@ -49,7 +49,7 @@ Details in the `nobloat-auth` skill. In short:
 
 - Two modes, both always supported: single user (`auth.user` + `auth.password`, basic auth, admin) and behind nobloat/auth via caddy `forward_auth` (`Remote-User`, `Remote-Name`, `Remote-Email`, `Remote-Groups`, trusted only from `trusted_proxies`). `-dev` is a fixed local admin.
 - No service implements login, user management or API keys: auth issues keys and checks them on every request against the owner's current groups.
-- Access in layers, all from groups: admission `access-<app>` (auth), roles `viewer < editor < admin` mapped with `role.<role> = <group>` (one `need(r, editor)` check per handler, default deny), resources by groups built from readable ids (`bill-<company>`, `track-<project>-owner`). No access lists stored in the app.
+- Access only from groups: admission `access-<app>` (auth), `<app>-admin` global, otherwise the level per resource in the group name (`bill-company-<id>-editor`, `track-project-<id>-member`); one check per handler on the object's company or project, default deny. No role mapping and no access lists stored in the app.
 - No custom roles, permission matrices or RBAC engine until a real case needs more than this.
 
 ## Configuration
