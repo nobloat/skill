@@ -16,12 +16,12 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 ## Integrations between services
 
 - **One direction.** The dependent service calls; the other never calls back.
-- **Identity:** an API key plus a seeded "person" for the integration whose groups decide what it may see. No special case in code.
+- **Identity:** a service user in nobloat/auth (no password, a seeded key) whose groups decide what it may reach. No special case in code (see `nobloat-auth`).
 - **Idempotent marks:** the caller sends a stable ref (`bill:<doc id>`) with the `{id: rev}` it read. All-or-nothing under the locks of every affected file; `409 {"error":"entries_changed","entries":[…]}` on any stale rev, foreign ref or invisible item; the same ref again succeeds. Marking does **not** bump `rev`, or retries break.
 - **Crash windows:** do the remote call inside the local transaction (lock held, ponytail-comment the limit), write locally after it succeeds, and make re-pulls accept items already marked with the caller's own ref. `check` lists half-done states.
 - **Unavailable = refuse,** never "finalize anyway". Undo paths (storno) release the marks first.
 - **Provenance:** data that only the server may produce (e.g. a line's pulled track entries) must not be accepted from clients. Accept it only when it equals what the server produced before (`422 invalid_track`).
-- Inside the compose network call the other service directly (`http://track:8740`); it authenticates the key itself. Caddy's local CA root is `0600` and unreadable for non-root containers.
+- Call the other service through caddy (`https://track.<system>.localhost`), never the container directly, so auth checks the key. Caddy's local CA root is `0600`: copy it readable in a one-shot container and point `SSL_CERT_FILE` at it; give caddy network aliases for the hostnames.
 
 ## Money and documents
 
@@ -42,7 +42,7 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 ## Security baseline (every service)
 
 - `http.NewCrossOriginProtection()` around the handler: the IdP cookie is valid on all sibling subdomains, `SameSite=Lax` does not stop same-site form posts. Non-browser clients pass.
-- Bearer requests never read `Remote-*` headers; the proxy skips `forward_auth` for them, so mixing would be a bypass. Test it through the proxy: wrong key + forged header must be 401.
+- A request with `Authorization` never reads `Remote-*` headers (only basic auth for the single user); caddy strips `Authorization` after forward auth. Test: basic + forged header must be 401.
 - `/metrics` has its own `metrics_key = sha256:…` that opens nothing else; empty = off. Gauges computed per scrape, counters in memory, Prometheus text by hand.
 - Never read server files from request data (a stateless renderer clears logo paths). Redirect targets: local paths only, no `//` and no backslash. Preference cookies `HttpOnly`.
 - Mails to customers carry only the templated text and the document, no links into internal tools; internal notices link back.
@@ -50,10 +50,10 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 
 ## Local stack
 
-- caddy (`local_certs`) + authelia + mailpit + the services, `*.<system>.localhost` (no `/etc/hosts`; authelia 4.39 accepts it as cookie domain, verify first). Generate argon2 hashes with `docker run authelia/authelia authelia crypto hash generate argon2 --password <user>` and commit them (local only).
-- Seed one user per role plus a denied one, and seed the people that CLI keys act as (their groups decide visibility).
+- caddy (`local_certs`) + nobloat/auth + mailpit + the services, `*.<system>.localhost` (no `/etc/hosts`). The stack lives in auth's repo (`example/local/`, `make local`) and builds the apps from `../<repo>`; seed users are auth's `*.user.conf` files with committed argon2 hashes and public TOTP secrets (local only).
+- Seed one user per role plus a denied one, and the service users of the integrations with their keys (`keys = <app>:<sha256>`).
 - `demo.sh`: builds the CLIs, uses `SSL_CERT_FILE` with caddy's root, is idempotent via a marker object **created last**, and reopens closed periods it needs to book into.
-- Verify layer 1–3 with a curl script (`--resolve host:443:127.0.0.1 -k`, authelia `/api/firstfactor` for a session per user): expected status per user and app, sabine's POST 403, keys, forged headers, metrics key.
+- Verify layer 1–3 with a curl script (`--resolve host:443:127.0.0.1 -k`, a session per user from auth's login): expected status per user and app, a viewer's POST 403, keys (lost group 403, revoked 401), forged headers, metrics key.
 
 ## Verification toolbox
 

@@ -2,9 +2,10 @@
 
 The nobloat software taste as a [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills): small, self-hosted, stdlib-only Go tools. Distilled from [workq](https://github.com/nobloat/workq), [blog](https://github.com/nobloat/blog), [tinyviper](https://github.com/nobloat/tinyviper), [poll](https://github.com/nobloat/poll) and [up](https://github.com/nobloat/up), plus bill and track for the system skill.
 
-Two skills, one directory each:
+Three skills, one directory each:
 
 - [nobloat](nobloat/SKILL.md): the taste for a single tool (stack, code, HTTP, auth, config, tests, UI, branding, plan-first workflow).
+- [nobloat-auth](nobloat-auth/SKILL.md): single-user basic auth or nobloat/auth in front via caddy forward auth, groups as the only source of access, API keys and service users from auth, Caddyfile, tests.
 - [nobloat-system](nobloat-system/SKILL.md): building several cooperating services end to end (integrations, money and documents, own renderers, security baseline, metrics, local auth stack, verification, review loop, demo video). Used together with nobloat.
 
 ## Install
@@ -22,7 +23,7 @@ git clone https://github.com/nobloat/skill ~/git/nobloat/skill
 | Pi | reads `~/.claude/skills` and `~/.agents/skills`, either link above works | `.agents/skills/nobloat` |
 | Other [Agent Skills](https://agentskills.io) agents | `~/.agents/skills/nobloat` | `.agents/skills/nobloat` |
 
-Same for `nobloat-system`. Create the parent directory first if missing (`mkdir -p ~/.agents/skills`). Per project, prefer a git submodule over a copy: `git submodule add https://github.com/nobloat/skill .agents/nobloat-skill`, then symlink `.agents/skills/nobloat -> ../nobloat-skill/nobloat` (and `nobloat-system`).
+Same for `nobloat-auth` and `nobloat-system`. Create the parent directory first if missing (`mkdir -p ~/.agents/skills`). Per project, prefer a git submodule over a copy: `git submodule add https://github.com/nobloat/skill .agents/nobloat-skill`, then symlink `.agents/skills/nobloat -> ../nobloat-skill/nobloat` (and `nobloat-system`).
 
 Agents without skill support: add `Follow ~/git/nobloat/skill/nobloat/SKILL.md.` (and `nobloat-system/SKILL.md` for multi-service work) to their `AGENTS.md`.
 

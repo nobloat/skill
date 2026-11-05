@@ -5,7 +5,7 @@ description: cinemast's nobloat software taste for small, self-hosted Go tools (
 
 # nobloat
 
-Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and track. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here. For a system of several cooperating services (or anything with money, documents, a local auth stack, reviews or a demo video) also read the `nobloat-system` skill.
+Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and track. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here. For a system of several cooperating services (or anything with money, documents, a local auth stack, reviews or a demo video) also read the `nobloat-system` skill; for anything about login, users, roles, API keys or the IdP read `nobloat-auth`.
 
 ## Philosophy
 
@@ -43,18 +43,13 @@ Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and trac
 - `/metrics` in Prometheus text format, written by hand, behind its own `metrics_key` that opens nothing else (empty = off).
 - Wrap the handler in `http.NewCrossOriginProtection()` whenever a cookie authenticates browsers; add `nosniff`, `X-Frame-Options`, `Referrer-Policy` in one middleware.
 
-## Auth (optional, for multi-user services)
+## Auth
 
-Single-user tools keep one static basic auth credential. Once users matter, no service implements login or user management: one IdP (Authelia today, a nobloat IdP later) behind caddy `forward_auth`, swappable by proxy config only.
+Details in the `nobloat-auth` skill. In short:
 
-- Fixed header contract: `Remote-User` (stable key), `Remote-Email`, `Remote-Name`, `Remote-Groups` (comma-separated). Other IdPs are mapped in caddy (`copy_headers X-Forwarded-User>Remote-User`), never via configurable header names.
-- Read them only from `trusted_proxies` (CIDRs in config), otherwise 401; a fixed user only with `-dev`. Users are created on first sight as a reference for audit log and permissions, no credentials stored.
-- No login/logout UI, only a `logout_url` link.
-- API keys (CLI, scripts, integrations) are the one thing a service checks itself: `Authorization: Bearer <key>`, stored hashed in the seedable config with a username and a role; caddy skips `forward_auth` when the header is present. A request with a bearer token therefore never reads `Remote-*` headers (test it through the proxy).
-- Access control in layers:
-  1. Who may reach the app at all: IdP rules per domain, no code.
-  2. What they may do: a few fixed roles in code (`viewer < editor < admin`, each implying the lower), mapped to IdP groups in config (`role.editor = billing`). One check per handler (`need(r, editor)`), default deny, UI hides what the role cannot do but the server enforces it.
-  3. Per object, only where needed: `groups` (optionally `users`) as fields on the object itself (e.g. a project), visible when a group is shared, admins see all. Seedable, audited, no ACL table.
+- Two modes, both always supported: single user (`auth.user` + `auth.password`, basic auth, admin) and behind nobloat/auth via caddy `forward_auth` (`Remote-User`, `Remote-Name`, `Remote-Email`, `Remote-Groups`, trusted only from `trusted_proxies`). `-dev` is a fixed local admin.
+- No service implements login, user management or API keys: auth issues keys and checks them on every request against the owner's current groups.
+- Access in layers, all from groups: admission `access-<app>` (auth), roles `viewer < editor < admin` mapped with `role.<role> = <group>` (one `need(r, editor)` check per handler, default deny), resources by groups built from readable ids (`bill-<company>`, `track-<project>-owner`). No access lists stored in the app.
 - No custom roles, permission matrices or RBAC engine until a real case needs more than this.
 
 ## Configuration
@@ -115,7 +110,7 @@ Most iterations came from these being unspecified. Decide them in the plan:
 1. Which tool does it replace, and what is explicitly out of scope?
 2. Storage: files or (exceptionally) SQLite, and why? Backup = copy the data dir?
 3. Config medium (env / JSON / Go), its strictness, defaults, secrets, includes/drop-ins?
-4. Public URL, default port, auth: static credential or IdP headers; roles and per-object access?
+4. Public URL, default port, auth: single user and/or nobloat/auth; roles and resource groups?
 5. What is logged during normal operation?
 6. What leaves the system (mails, webhooks), through an outbox, and does every message link back?
 7. Which pages and endpoints are public and what exactly may they show?
@@ -135,7 +130,7 @@ Implementation is a single pass, so every decision is settled before code exists
    Also write every **sample file** for real: the sample config with defaults and comments, one file per seeded entity (users, roles, objects) with realistic data, both Caddyfiles (production with one block per pattern, local stack), the local `compose.yaml` and its init scripts, and the test-suite configs. The owner reads and runs these to judge how the system looks and feels, and to find missing or misread requirements, before any implementation. One config set serves `make run` and the local stack (env overrides in compose), with no second copy.
    For every third-party app the system integrates (OIDC clients, for example), the README gets a setup section with the app's own role model mapped to groups: a table of group → app role and the exact config of both sides. The local stack configures it the same way.
 5. Write `README.md` **as if the software already shipped**, in the final README layout (see Project setup). Use real `make` targets, `docker run`/compose snippets, the config reference copied from the plan, and one worked example per main use case, with screenshot placeholders. Write it for a user who has never seen the plan. Anything that is hard to explain in the README, needs a caveat, or contradicts the plan is a misunderstood or unsettled requirement: add it to the open questions. Keep it in sync with each plan revision. The plan holds the decisions, the README holds the user's view, and neither repeats the other's details beyond the config reference.
-6. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + the IdP (Authelia) in front, a mail sink (mailpit), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
+6. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + nobloat/auth in front, a mail sink (mailpit), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
 7. **Wireframe review before any implementation.** Build `wireframes.html`: static, self-contained mockups in the real nobloat look (monospace, tokens, light + dark), with realistic example data, every page and dialog, the phone layout, and each important flow shown step by step (e.g. "add hours from track": empty draft → dialog → result). Publish it for the owner and iterate on their feedback until they stop changing it. Check every revision for:
    - shortcuts: vim `h j k l`, `g` + letter for every navigation item, `/` global search, no key bound twice on one page
    - density: few columns, generous whitespace, secondary info in muted small text or on the detail page
