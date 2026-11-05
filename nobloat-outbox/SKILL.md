@@ -122,7 +122,7 @@ Extend auth's `buildMessage`; build with `mime/multipart`, `mime`, `mime/quotedp
 ## Dev and local testing
 
 - `-dev` without `smtp_url`: log the mail at INFO instead of sending, then remove the record (auth). Without `-dev` and without `smtp_url`, records stay pending and `-check` warns (bill instead errors on every attempt and refuses `send` with `smtp_not_configured`).
-- Local stack: mailpit in compose (`smtp+insecure://mailpit:1025`, UI on 8025), `make mailpit` for `make run`; webhooks go to a local echo endpoint (a `-dev` route or any request bin container).
+- Local stack: [nobloat/nomail](https://github.com/nobloat/nomail) in compose (`smtp+insecure://nomail:1025`, IMAP `nomail:1143`, UI and API on 8025, `wait=` long poll for test assertions), `make nomail` (shared `nobloat-nomail` container) for `make run`; webhooks go to a local echo endpoint (a `-dev` route or any request bin container).
 
 ## Metrics
 
