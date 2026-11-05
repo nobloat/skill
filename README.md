@@ -6,6 +6,7 @@ Three skills, one directory each:
 
 - [nobloat](nobloat/SKILL.md): the taste for a single tool (stack, code, HTTP, auth, config, tests, UI, branding, plan-first workflow).
 - [nobloat-auth](https://github.com/nobloat/auth/blob/main/skill/SKILL.md) (lives in nobloat/auth as `skill/`; `nobloat-auth/` here is a pointer): single-user basic auth or nobloat/auth in front via caddy forward auth, groups as the only source of access, API keys and service users from auth, Caddyfile, tests.
+- [nobloat-storage](nobloat-storage/SKILL.md): config, entity files and hot reload, JSON per type or per object, CSV or JSONL rows, atomic writes, seeding from prepared files, trivial and incremental backup, export, migration, when SQLite is justified.
 - [nobloat-system](nobloat-system/SKILL.md): building several cooperating services end to end (integrations, money and documents, own renderers, security baseline, metrics, local auth stack, verification, review loop, demo video). Used together with nobloat.
 
 ## Install
@@ -23,7 +24,7 @@ git clone https://github.com/nobloat/skill ~/git/nobloat/skill
 | Pi | reads `~/.claude/skills` and `~/.agents/skills`, either link above works | `.agents/skills/nobloat` |
 | Other [Agent Skills](https://agentskills.io) agents | `~/.agents/skills/nobloat` | `.agents/skills/nobloat` |
 
-Same for `nobloat-system`. For `nobloat-auth` link the auth repo's `skill/` directory (`ln -s ~/git/nobloat/auth/skill ~/.claude/skills/nobloat-auth`); linking `nobloat-auth/` from here also works and points there. Create the parent directory first if missing (`mkdir -p ~/.agents/skills`). Per project, prefer a git submodule over a copy: `git submodule add https://github.com/nobloat/skill .agents/nobloat-skill`, then symlink `.agents/skills/nobloat -> ../nobloat-skill/nobloat` (and `nobloat-system`).
+Same for `nobloat-storage` and `nobloat-system`. For `nobloat-auth` link the auth repo's `skill/` directory (`ln -s ~/git/nobloat/auth/skill ~/.claude/skills/nobloat-auth`); linking `nobloat-auth/` from here also works and points there. Create the parent directory first if missing (`mkdir -p ~/.agents/skills`). Per project, prefer a git submodule over a copy: `git submodule add https://github.com/nobloat/skill .agents/nobloat-skill`, then symlink `.agents/skills/nobloat -> ../nobloat-skill/nobloat` (and `nobloat-system`).
 
 Agents without skill support: add `Follow ~/git/nobloat/skill/nobloat/SKILL.md.` (and `nobloat-system/SKILL.md` for multi-service work) to their `AGENTS.md`.
 

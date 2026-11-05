@@ -5,7 +5,7 @@ description: cinemast's nobloat software taste for small, self-hosted Go tools (
 
 # nobloat
 
-Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and track. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here. For a system of several cooperating services (or anything with money, documents, a local auth stack, reviews or a demo video) also read the `nobloat-system` skill; for anything about login, users, roles, API keys or the IdP read `nobloat-auth`.
+Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and track. Read before starting or specifying a nobloat project; most iterations on past projects were about points listed here. For a system of several cooperating services (or anything with money, documents, a local auth stack, reviews or a demo video) also read the `nobloat-system` skill; for anything about login, users, roles, API keys or the IdP read `nobloat-auth`. For storage, config, seed data, backup and export read `nobloat-storage`.
 
 ## Philosophy
 
