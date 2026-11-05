@@ -5,7 +5,7 @@ description: How nobloat services authenticate and authorize: single-user basic 
 
 # nobloat-auth
 
-Read with the `nobloat` skill. Learned while moving bill, track and tax from Authelia plus app-owned API keys to nobloat/auth as the single source of access.
+Read with the `nobloat` skill. Learned while making nobloat/auth the single source of access for bill, track and tax.
 
 ## Two modes, nothing else
 
