@@ -29,4 +29,6 @@ Same for `nobloat-storage` and `nobloat-system`. For `nobloat-auth` link the aut
 
 Agents without skill support: add `Follow ~/git/nobloat/skill/nobloat/SKILL.md.` (and `nobloat-system/SKILL.md` for multi-service work) to their `AGENTS.md`.
 
+All nobloat components together, with this repo as a submodule, are [nobloat/system](https://github.com/nobloat/system): the local stack and the place to drive changes across components.
+
 Use: the agent loads a skill when its description matches (starting, building or reviewing a nobloat project); force it with `/nobloat` (Claude Code), `$nobloat` (Codex) or `/skill:nobloat` (Pi), likewise `nobloat-system`.

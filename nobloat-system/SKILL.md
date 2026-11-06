@@ -11,7 +11,7 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 
 - One repo per deployable, **no shared code**: copy store/auth/audit/i18n/strict-JSON helpers instead of a shared module. Name the duplication in the ponytail review as intentional.
 - The integration lives in the plan of the depending service: who calls whom, exact requests, failure and retry behavior, sequence sketch. The other side stays ignorant (track knows nothing about invoices or money).
-- The local stack (`example/local/`) lives in the repo that needs all services and builds the others from `../<repo>`.
+- The local stack lives in [nobloat/system](https://github.com/nobloat/system): every service is a submodule, `make local` builds them from there, `make local SRC=..` from the sibling checkouts.
 
 ## Integrations between services
 
@@ -50,7 +50,7 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 
 ## Local stack
 
-- caddy (`local_certs`) + nobloat/auth + nomail (SMTP + IMAP sink, `../nomail`) + the services, `*.<system>.localhost` (no `/etc/hosts`). The stack lives in auth's repo (`example/local/`, `make local`) and builds the apps from `../<repo>`; seed users are auth's `*.user.conf` files with committed argon2 hashes and public TOTP secrets (local only).
+- caddy (`local_certs`) + nobloat/auth + nomail (SMTP + IMAP sink, `../nomail`) + the services, `*.<system>.localhost` (no `/etc/hosts`). The stack lives in nobloat/system (`make local`) and builds the apps from its submodules (or `../<repo>` with `SRC=..`); each app's config stays in its own `example/`; seed users are auth's `*.user.conf` files with committed argon2 hashes and public TOTP secrets (local only).
 - Seed one user per role plus a denied one, and the service users of the integrations with their keys (`keys = <app>:<sha256>`).
 - `demo.sh`: builds the CLIs, uses `SSL_CERT_FILE` with caddy's root, is idempotent via a marker object **created last**, and reopens closed periods it needs to book into.
 - Verify layer 1–3 with a curl script (`--resolve host:443:127.0.0.1 -k`, a session per user from auth's login): expected status per user and app, a viewer's POST 403, keys (lost group 403, revoked 401), forged headers, metrics key.

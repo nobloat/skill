@@ -130,7 +130,7 @@ Implementation is a single pass, so every decision is settled before code exists
    Also write every **sample file** for real: the sample config with defaults and comments, one file per seeded entity (users, roles, objects) with realistic data, both Caddyfiles (production with one block per pattern, local stack), the local `compose.yaml` and its init scripts, and the test-suite configs. The owner reads and runs these to judge how the system looks and feels, and to find missing or misread requirements, before any implementation. One config set serves `make run` and the local stack (env overrides in compose), with no second copy.
    For every third-party app the system integrates (OIDC clients, for example), the README gets a setup section with the app's own role model mapped to groups: a table of group → app role and the exact config of both sides. The local stack configures it the same way.
 5. Write `README.md` **as if the software already shipped**, in the final README layout (see Project setup). Use real `make` targets, `docker run`/compose snippets, the config reference copied from the plan, and one worked example per main use case, with screenshot placeholders. Write it for a user who has never seen the plan. Anything that is hard to explain in the README, needs a caveat, or contradicts the plan is a misunderstood or unsettled requirement: add it to the open questions. Keep it in sync with each plan revision. The plan holds the decisions, the README holds the user's view, and neither repeats the other's details beyond the config reference.
-6. Plan a **local stack** (`example/local/`, `make local`): docker compose with caddy + nobloat/auth in front, a mail sink (nomail), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
+6. Plan the **local stack** in [nobloat/system](https://github.com/nobloat/system) (`make local`; a single tool without siblings may keep its own `example/local/`): docker compose with caddy + nobloat/auth in front, a mail sink (nomail), and seed data with one user per role plus users who are denied. List the users, passwords, groups and what each one demonstrates.
 7. **Wireframe review before any implementation.** Build `wireframes.html`: static, self-contained mockups in the real nobloat look (monospace, tokens, light + dark), with realistic example data, every page and dialog, the phone layout, and each important flow shown step by step (e.g. "add hours from track": empty draft → dialog → result). Publish it for the owner and iterate on their feedback until they stop changing it. Check every revision for:
    - shortcuts: vim `h j k l`, `g` + letter for every navigation item, `/` global search, no key bound twice on one page
    - density: few columns, generous whitespace, secondary info in muted small text or on the detail page
@@ -139,6 +139,22 @@ Implementation is a single pass, so every decision is settled before code exists
    The plan names `wireframes.html` as the visual reference, which wins over its ASCII sketches.
 8. Add a **manual acceptance checklist** to the plan: numbered items the owner clicks through at the end in the local stack, each naming the user to log in as and the expected result, grouped by area (operations, access, main flows, edge cases, output documents, UI/keyboard/mobile/a11y, CLI parity). Automated tests are listed separately and are still required.
 9. Commit `PROMPT.md`, `PLAN.md`, `README.md`, `wireframes.html`, the stub code and the sample files as the first commit of a fresh repo per deployable. Start implementing only on the owner's explicit go, then build everything in one pass without asking back.
+
+## Change an existing project
+
+Every change to a shipped project follows the same loop. Each step edits the existing file; create it only if it is missing.
+
+1. The owner suggests the change in a prompt (append it to `PROMPT.md` with the date).
+2. Adapt `PLAN.md`: the decisions, as if the change were already built (a dated *Addendum* for changes after the first release).
+3. Adapt `README.md` from the user's point of view, as if the change had already shipped.
+4. Adapt `wireframes.html` for every page or flow the change touches.
+5. Adapt the sample configs and seed files (`example/`) as if the system already followed the new spec, including the stack in [nobloat/system](https://github.com/nobloat/system) when the change spans services.
+6. Clarify open topics: one numbered list, each item with a recommended default (see Plan first, steps 1–2).
+7. Suggest the code layout and any interfaces the change needs (new files, signatures, the request and response types between services), as in Plan first, step 4.
+8. Wait for the owner's confirmation.
+9. Implement in one pass. Write automated tests, then verify end to end in the local stack (`make local` and `make local-check` in nobloat/system).
+10. Adapt the CI suite (`.github/workflows/ci.yml`) and make sure it is green.
+11. Push to `main`. A release is a tag (`make release`, or `./release.sh <app> <tag>` in nobloat/system, which also pins the stack's version).
 
 ## Definition of done
 
