@@ -43,14 +43,18 @@ Extends the `nobloat` skill (read it first) with what building bill + track in o
 
 - `http.NewCrossOriginProtection()` around the handler: the IdP cookie is valid on all sibling subdomains, `SameSite=Lax` does not stop same-site form posts. Non-browser clients pass.
 - A request with `Authorization` never reads `Remote-*` headers (only basic auth for the single user); caddy strips `Authorization` after forward auth. Test: basic + forged header must be 401.
-- `/metrics` has its own `metrics_key = sha256:…` that opens nothing else; empty = off. Gauges computed per scrape, counters in memory, Prometheus text by hand.
-- Never read server files from request data (a stateless renderer clears logo paths). Redirect targets: local paths only, no `//` and no backslash. Preference cookies `HttpOnly`.
+- `/metrics` has its own `metrics_key = sha256:…` from `<app> secret` (never a chosen word, see `nobloat-storage`, Config) that opens nothing else; empty = off. Gauges computed per scrape, counters in memory, Prometheus text by hand.
+- Never read server files from request data (a stateless renderer clears logo paths). Redirect targets (`?rd=`, `/lang/{l}?rd=`): local paths only: refuse control characters and backslash, and accept only a `url.Parse` result with empty scheme and host and a path starting with a single `/`. Preference cookies `HttpOnly`.
 - Mails to customers carry only the templated text and the document, no links into internal tools; internal notices link back.
 - Security headers (`nosniff`, `X-Frame-Options`, `Referrer-Policy`) in one middleware.
+- Every body is capped: `http.MaxBytesReader` before `ParseMultipartForm`, `FormValue` or a JSON decode, per route.
+- Basic auth for scripts: 10 failures in 10 minutes per client IP answer 429 until the window passes; failures are logged.
+- Logout is a POST (the shared header's ⏻ is a form); a GET never ends a session.
 
 ## Local stack
 
 - caddy (`local_certs`) + nobloat/auth + nomail (SMTP + IMAP sink, `../nomail`) + the services, `*.<system>.localhost` (no `/etc/hosts`). The stack lives in nobloat/system (`make local-source`, or `make local-images` for the released images) and builds the apps from its submodules (or `../<repo>` with `SRC=..`); each app's config stays in its own `example/`; seed users are auth's `*.user.conf` files with committed argon2 hashes and public TOTP secrets (local only).
+- **nomail is local only.** It receives every mail of the stack, including auth's reset and activation links, so whoever reads it can take over every account. Never publish or expose a stack built this way (not on a LAN, not "to show it"). App containers reach only its SMTP port; its UI and API (8025) answer only through caddy and auth (`Remote-*` from the proxy's address, like any app), `NOMAIL_USERS` is set so IMAP and the API need passwords, and `check.sh` asserts that an app container cannot read `http://nomail:8025/api/messages`.
 - Seed one user per role plus a denied one, and the service users of the integrations with their keys (`keys = <app>:<sha256>`).
 - `demo.sh`: builds the CLIs, uses `SSL_CERT_FILE` with caddy's root, is idempotent via a marker object **created last**, and reopens closed periods it needs to book into.
 - Verify layer 1–3 with a curl script (`--resolve host:443:127.0.0.1 -k`, a session per user from auth's login): expected status per user and app, a viewer's POST 403, keys (lost group 403, revoked 401), forged headers, metrics key.
