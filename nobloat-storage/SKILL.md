@@ -37,7 +37,7 @@ Decide per kind, in the plan's data-layout table, with these questions. One "per
 | Rules across objects (unique number, references) | cheap: one read, one validated write | need a startup scan and a lock on the scope (the series, the company) |
 | Listing | one read | a directory scan, parse every file (cache by mtime+size if hot) |
 | Lifecycle | edited in place | created, frozen, archived (documents), deleted by removing the file |
-| Damage | one bad file stops the kind | one bad file names the object; startup still refuses it |
+| Damage | one bad file stops the kind (refuse to start) | one bad file names the object; startup skips and logs it, `check` reports it |
 | Hot reload | not needed | per file, by fingerprint |
 
 Rows (entries, bank rows, check results) are neither: CSV per kind, partitioned by owner or year.
@@ -81,14 +81,19 @@ Rules:
 - **Locks:** a `sync.Map` of one mutex per relative path; `lock(rels...)` sorts and dedupes so multi-file writers never deadlock. Hold the lock across read-modify-write.
 - **Concurrent edits:** every object has `rev`; PATCH needs it, a mismatch is `409 rev_mismatch` with the current object. For hand-edited `.conf` files use the sha256 of the content instead of a `rev` key, so files stay clean.
 - **One change, several files:** write a `.transaction.json` with every new file content first (the commit point), then replace the files, then delete the record. Replay it on startup before reading anything (track). Without it, order the writes so a crash leaves something `check` can find (blob before its JSON, remote mark before local write) and say so in a `ponytail:` comment.
-- **After a failed write:** answer 503 on every request until a restart has recovered (track). Never keep serving a state that is not on disk.
+- **Input never reaches the disk unchecked:** validate every path component built from a request (ids `[a-z0-9-]` ≤ 64, upload names cleaned and length-capped) before any write, and parse the bytes about to be written back with the loader's own code; if they do not load to exactly the requested values, answer 4xx and write nothing. What the API can write, startup can read.
+- **After a failed write** that survived that validation (ENOSPC, EIO, EACCES, a failed rename or dir sync): answer 503 on every request until a restart has recovered (track). Never keep serving a state that is not on disk. An error caused by the request (a rejected name, a value that does not read back) is a 4xx for that request and never enters this state.
+- **Tests:** feed hostile input (`/`, `..`, `\`, NUL, newlines, `#`, ` = `, 300-byte names, collisions) to every write path: each answers 4xx or round-trips, the app keeps serving, and a restart loads everything. A property test writes random API states and runs `check` on the result.
 - **Appends:** `O_APPEND`, one complete line per write, `Sync`. The reader rejects an unterminated last record (`check` reports it) instead of guessing.
 - **Rewrite vs append:** append for logs and rows that only grow; full rewrite only for small files. Mark the limit: `// ponytail: rewrites the whole file per event; split by year past a few MB`.
 
 ## Reads and startup
 
 - Decode strictly everywhere, data files included: unknown fields, duplicate keys and trailing data are errors.
-- Startup validates everything (`openData`): parse every file, check ids, duplicates and references, check uniqueness rules (numbers per series). On any error refuse to start with file and line. There are no silent skips.
+- Startup validates everything (`openData`): parse every file, check ids, duplicates and references, check uniqueness rules (numbers per series).
+- **Structural errors refuse the start** with file and line: an unreadable data dir, a per-type file or CSV header that does not parse, a transaction record that cannot be replayed, a broken main config.
+- **One bad record does not:** a per-object file or row that does not parse or fails its checks is skipped, logged at ERROR with file and line, counted, and reported by `check` (errors, exit 1). The app serves everything else; the object is missing until someone fixes or removes the file. Nothing is silent.
+- **Crash states are planned:** the plan lists, per multi-write sequence, the states a crash between its writes can leave (object without counter, blob without JSON, counter behind). Startup repairs exactly those (counters reconciled as `max(counter, highest used)`) or warns about them; they never stop the start.
 - `<app> check -config <file>` runs the same code and prints every problem at once (warnings separate from errors). CI runs it on the sample config and data.
 - Memory model, picked per app and written in the plan:
   - **Read per request** (bill): simplest; external edits show up immediately, but are not validated until restart.
@@ -102,7 +107,7 @@ Rules:
 - Unknown keys, duplicate keys and lines without `=` are errors with file:line.
 - Env `<APP>_<KEY>` overrides every key (`.` → `_`). An unknown `<APP>_*` variable is an error, except the CLI's own (`<APP>_URL`, `_KEY`, `_USER`, `_PASSWORD`).
 - Defaults live in one map. `example/<app>.conf` lists every key with its default and a comment and is the documentation; `check` must accept it.
-- Secrets that are only compared are stored as `sha256:<hex>` (`metrics_key`, OIDC client secrets), and `<app> secret` prints a new one with its config line. Secrets the app must send (SMTP, IMAP, the other app's key) are plain and the config file is 0600.
+- Secrets that are only compared (`metrics_key`, API keys, OIDC client secrets) are generated, never chosen: `<app> secret` prints 128 random bits and the config line with their `sha256:<hex>`. Startup refuses a compared secret that is not in `sha256:` form, and the compare is constant-time. Unsalted SHA-256 is only safe for such random values; anything a human chooses (passwords) is argon2id. Secrets the app must send (SMTP, IMAP, the other app's key) are plain and the config file is 0600.
 - `-dev`: a fixed local admin, logged mails, no cookies `Secure`. It is never a production mode.
 
 ## Entities as files and hot reload
@@ -164,7 +169,7 @@ A nobloat app must be trivially backed up: **the data dir is the backup unit**, 
 - Result: `restic backup /data`, `rsync -a --delete`, `borg create`, or a ZFS/btrfs/volume snapshot every hour moves only what changed. No app-specific backup tool, no dump step, no lock.
 
 **Export through the app** (for people without shell access, and for a guaranteed consistent cut):
-- `GET /api/export` (admin; auth, which has no REST admin API, serves it as `GET /admin/export`) streams a tar.gz under the storage read lock (writes wait; reads continue): `data/…` for the data dir and `config/…` for the config file or dir, without temp files and caches, with `manifest.json` first (app, version, created, every file with path, size, mtime and sha256). The CLI wraps it: `<app> export > backup-2026-11-05.tgz`.
+- `GET /api/export` (admin; auth, which has no REST admin API, serves it as `GET /admin/export`) builds a tar.gz into a temp file (`.tmp-*` in the data dir) under the storage read lock, releases the lock, then streams the file and deletes it; never stream to a client while holding a lock (one stalled client would freeze every write). Every download that reads several files works the same way. The archive holds `data/…` for the data dir and `config/…` for the config file or dir, without temp files and caches, with `manifest.json` first (app, version, created, every file with path, size, mtime and sha256). The CLI wraps it: `<app> export > backup-2026-11-05.tgz`.
 - `GET /api/export?since=<manifest timestamp>` returns only the files changed since then plus the full manifest, so deletions are visible: an incremental export. Restore = the full export, then each increment in order, deleting files absent from that increment's manifest.
 - `<app> restore <archive>…` (offline) unpacks into an empty data dir, verifies sha256 against the manifest, then runs `check`. Restoring by hand (untar) is equally valid.
 - A test does the drill: export, restore into `t.TempDir()`, `check` passes, the data compares equal.
