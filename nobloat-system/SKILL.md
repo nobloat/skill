@@ -90,7 +90,7 @@ Run `make test` after each and commit each review separately.
 
 ## Demo video
 
-- Drive headless Chrome over the DevTools protocol with Node's built-in `WebSocket` and `fetch` (no npm): `Page.startScreencast` frames with timestamps, `Input.dispatchMouseEvent`/`dispatchKeyEvent`/`insertText` at human pace.
+- Drive headless Chrome from Go with nobloat/ui's `browser` package (no Node; `ui/video/main.go` is the example): `Page.startScreencast` frames with timestamps, mouse and keys at human pace (`Tab.Move`, `Click`, `Key`, `Type`). Firefox has no screencast, so videos are Chrome; checks run in both.
 - Inject an overlay via `Page.addScriptToEvaluateOnNewDocument`: caption bar, a visible cursor (headless draws none), key badges for every shortcut; re-apply the caption after each navigation.
 - Record against the local stack with real logins per role; show denials too. Title cards between services.
 - Things headless cannot show (the PDF viewer, a terminal) are pre-rendered: PDFs to PNG with `pdftoppm`, CLI runs captured with their real output and replayed in a page with a typing effect.

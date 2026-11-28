@@ -17,12 +17,13 @@ Distilled from workq, blog, tinyviper, poll, up (pingpong), split, bill and trac
 
 ## Stack
 
-- Go, standard library only, current Go release. A dependency needs a reason and goes behind a build tag or a separate module (blog `-tags watch`, workq `pgxq`).
+- Go, standard library only, current Go release. `golang.org/x/*` counts as stdlib: use it when the stdlib lacks what is needed and rebuilding it would take more than a couple hundred lines (`x/net/html`, `x/crypto`). Any other dependency needs a reason and goes behind a build tag or a separate module (blog `-tags watch`, workq `pgxq`).
 - One statically compiled binary (`CGO_ENABLED=0`), `package main` for apps, a single file for libraries. All assets via `embed`.
 - Every timestamp shows its timezone (logs, UI, files); build with `-tags timetzdata` so `TZ` works in `scratch` images.
 - Logging with `log/slog`. Log activity, not only errors: startup (version + clickable URL), each unit of work at INFO, state changes at WARN, failures at ERROR.
 - Storage: files first. JSON per item, append-only CSV, written via temp file + fsync + rename; one lock per item (`sync.Map` of mutexes), not a global one. A database only when the problem is a database problem (relational queries, reports across many records): then SQLite through a pure-Go driver, isolated in one file (`store.go`), plain SQL, schema in one `.sql` file, no ORM, no migration framework.
 - Frontend: server-rendered `html/template`, one CSS file, a little inline or single-file JS. No node, npm, bundler or SPA framework.
+- Browsers: every page and script works in current Chrome and Firefox (stable, and Firefox ESR) on Windows, macOS and Linux desktops and on phones from 320 px; Safari and iOS are best effort, not tested. Check it in both (`go -C ../ui run ./cmd/nbui check <url> <paths>…`). Browser automation (checks, screenshots, videos) is Go too, with nobloat/ui's `browser` package (Chrome over the DevTools protocol, Firefox over WebDriver BiDi, no driver binaries): no Node.
 
 ## Code
 
